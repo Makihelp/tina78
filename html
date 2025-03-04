@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Génère ta documentation en un seul clic à partir de Google Sheets et Google Docs.">
+  <title>Génère ta doc en un CLIC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* Vos styles CSS ici */
+    :root {
+      --primary-color: #f6c3cc;
+      --secondary-color: #fbd95d;
+      --font-family: 'Roboto', sans-serif;
+      --font-family-heading: 'Poppins', sans-serif;
+      --background-image: url('https://i.imgur.com/dbWnDck.png');
+      --margin-small: 10px;
+      --margin-medium: 20px;
+      --padding-small: 10px;
+      --padding-medium: 20px;
+    }
+
+    body {
+      text-align: center;
+      font-family: var(--font-family);
+      margin: 0;
+      padding: 0;
+      color: #000000;
+      background-image: var(--background-image);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch; /* Remplacez 'center' par 'stretch' */
+      overflow-y: auto;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 1200px;
+      margin: var(--margin-medium) auto;
+      padding-top: var(--padding-medium);
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    main {
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: var(--padding-medium);
+      border-radius: 10px;
+      width: 100%;
+      margin-top: var(--margin-medium);
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      overflow-y: auto;
+    }
+
+    .step {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      display: none;
+      will-change: opacity, transform;
+    }
+
+    .step.active {
+      opacity: 1;
+      transform: translateY(0);
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+      margin-bottom: var(--margin-medium);
+      overflow: hidden;
+    }
+
+    .progress {
+      height: 100%;
+      background-color: var(--primary-color);
+      border-radius: 5px;
+      transition: width 0.5s ease;
+    }
+
+    .validation-button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: var(--margin-small);
+      gap: var(--margin-small);
+    }
+
+    .custom-button, .signup-button {
+      background-color: var(--primary-color);
+      border: none;
+      padding: var(--padding-small) var(--padding-medium);
+      font-family: var(--font-family);
+      font-weight: bold;
+      cursor: pointer;
+      color: #000000;
+      border-radius: 5px;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .custom-button:hover, .signup-button:hover {
+      background-color: #f4a5b3;
+      transform: scale(1.05);
+    }
+
+    .custom-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .stepper {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: var(--margin-medium);
+      background-color: rgba(255, 255, 255, 0.9);
+      z-index: 100;
+    }
+
+    .step-indicator {
+      flex: 1;
+      text-align: center;
+      padding: var(--padding-small);
+      background-color: #f0f0f0;
+      margin: 0 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .step-indicator:hover {
+      background-color: var(--primary-color);
+      transform: scale(1.05);
+    }
+
+    .step-indicator.active {
+      background-color: var(--primary-color);
+      font-weight: bold;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    input[type="text"], select {
+      background-color: var(--secondary-color);
+      border: 1px solid #ccc;
+      border-radius: 0;
+      padding: var(--padding-small);
+      font-family: var(--font-family);
+      font-weight: normal;
+      color: #000000;
+      font-size: 24px;
+      margin-top: var(--margin-small);
+      width: 100%;
+      max-width: 500px;
+      height: 50px;
+      box-sizing: border-box;
+    }
+
+nav {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: var(--padding-small) var(--padding-medium);
+  display: flex;
+  justify-content: space-between; /* Distribue les éléments : gauche, centre, droite */
+  align-items: center; /* Centre verticalement les éléments */
+  box-sizing: border-box;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex; /* Place les éléments en ligne */
+  gap: var(--margin-medium); /* Espace entre les liens */
+  align-items: center; /* Centre verticalement les éléments */
+}
+
+nav ul.nav-left {
+  flex: 1; /* Prend l'espace à gauche */
+  justify-content: flex-start; /* Aligne les éléments à gauche */
+}
+
+nav ul.nav-right {
+  flex: 1; /* Prend l'espace à droite */
+  justify-content: flex-end; /* Aligne les éléments à droite */
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center; /* Centre le logo horizontalement */
+  align-items: center; /* Centre le logo verticalement */
+  flex: 0 0 auto; /* Le logo prend uniquement l'espace nécessaire */
+}
+
+nav ul li {
+  margin: 0; /* Supprime les marges externes */
+  padding: 0; /* Supprime les marges internes */
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #000000;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 700;
+  transition: color 0.3s ease;
+  display: inline-flex; /* Place le texte sur une ligne et assure un alignement vertical */
+  align-items: center; /* Centre le texte verticalement */
+  padding: 10px 15px; /* Uniformise l'espace intérieur */
+  height: 40px; /* Hauteur fixe pour tous les liens */
+}
+
+.signup-button {
+  padding: 10px 20px; /* Espace intérieur spécifique pour le bouton */
+  display: inline-flex; /* Aligne le texte verticalement */
+  align-items: center; /* Centre le texte verticalement */
+  height: 40px; /* Hauteur fixe pour correspondre aux autres liens */
+  background-color: var(--primary-color);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-weight: bold;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.signup-button:hover {
+  background-color: #f4a5b3;
+  transform: scale(1.05);
+}
+
+
+
+
+    header {
+      background-color: rgba(255, 255, 255, 0.9);
+      z-index: 100;
+      width: 100%;
+      padding: var(--padding-medium) 0;
+      margin-top: 80px;
+    }
+
+    h1 {
+      font-size: 90px;
+      color: #000000;
+      font-weight: 800;
+      line-height: 0.7;
+      font-family: var(--font-family-heading);
+      margin-top: var(--margin-small);
+    }
+
+    .clic {
+      color: var(--primary-color);
+    }
+
+    .etape1-text {
+      font-family: var(--font-family-heading);
+      font-weight: 800;
+      font-size: 48px;
+      color: #000000;
+      margin-bottom: var(--margin-medium);
+      margin-top: 0;
+      position: relative;
+      top: -10%;
+    }
+
+    .etape1-text span {
+      color: var(--secondary-color);
+    }
+
+    .sheet-url-label {
+      font-family: var(--font-family);
+      font-weight: 400;
+      font-size: 24px;
+      color: #000000;
+      margin-bottom: var(--margin-small);
+      display: flex;
+      align-items: center;
+      gap: var(--margin-small);
+    }
+
+    .sheet-data-grid {
+      width: 100%;
+      margin-top: var(--margin-medium);
+      overflow-x: auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: var(--padding-medium);
+      background-color: #f9f9f9;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .sheet-data-grid table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .sheet-data-grid th, .sheet-data-grid td {
+      padding: var(--padding-small);
+      border: 1px solid #ccc;
+      text-align: left;
+      font-family: var(--font-family);
+      font-size: 14px;
+      color: #000000;
+    }
+
+    .sheet-data-grid th {
+      background-color: var(--primary-color);
+      font-weight: bold;
+    }
+
+    .sheet-data-grid tr {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .sheet-data-grid tr.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #loading {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+    }
+
+    .message {
+      padding: var(--padding-small);
+      margin-top: var(--margin-small);
+      border-radius: 5px;
+      display: none;
+      font-family: var(--font-family);
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .message.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #iframeContainer {
+      margin-top: var(--margin-medium);
+      margin-bottom: 40px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 1200px;
+      max-height: 700px;
+      background-color: #f9f9f9;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: var(--padding-medium);
+    }
+
+    #iframeContainer iframe {
+      border: none;
+      width: 1000px;
+      height: 700px;
+      max-width: 100%;
+      resize: horizontal;
+      overflow: auto;
+    }
+
+    .section-title {
+      font-family: var(--font-family-heading);
+      font-size: 24px;
+      color: var(--primary-color);
+      margin-top: 40px;
+      margin-bottom: var(--margin-medium);
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: var(--padding-small);
+    }
+
+    .section-title i {
+      margin-right: var(--margin-small);
+      color: var(--primary-color);
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 10vw;
+      }
+
+      .etape1-text {
+        font-size: 6vw;
+        margin-top: 10vh;
+      }
+
+      .container {
+        padding: var(--padding-small);
+      }
+
+      input[type="text"], select {
+        font-size: 18px;
+        height: 40px;
+      }
+    }
+
+    .search-filter-container {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: var(--margin-small);
+    }
+
+    .search-container input[type="text"] {
+      padding: var(--padding-small);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      width: 200px;
+    }
+
+    .filters-container select {
+      padding: var(--padding-small);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: white;
+      cursor: pointer;
+    }
+
+    /* Styles pour les icônes d'aide */
+    .help-icon {
+      cursor: pointer;
+      color: var(--primary-color);
+      font-weight: bold;
+      font-size: 18px;
+      transition: color 0.3s ease;
+    }
+
+    .help-icon:hover {
+      color: #f4a5b3;
+    }
+
+    /* Styles pour les encadrés d'aide */
+    .help-box {
+      display: none; /* Masqué par défaut */
+      position: absolute;
+      background-color: white;
+      border: 1px solid var(--primary-color);
+      border-radius: 5px;
+      padding: var(--padding-small);
+      margin-top: var(--margin-small);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      max-width: 300px;
+    }
+
+    .help-box p {
+      margin: 0;
+      font-size: 14px;
+      color: #000000;
+    }
+
+    /* Position relative pour le parent de l'encadré d'aide */
+    .sheet-url-label {
+      position: relative;
+    }
+
+    /* Styles pour la section FAQ */
+    #faq-section {
+      margin: 40px auto;
+      max-width: 1200px;
+      padding: 20px;
+    }
+
+    .faq-content {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .faq-content h3 {
+      color: var(--primary-color);
+      font-family: var(--font-family-heading);
+      margin-bottom: 20px;
+    }
+
+    .faq-content h4 {
+      color: var(--secondary-color);
+      font-family: var(--font-family-heading);
+      margin-top: 20px;
+    }
+
+    .faq-content ul, .faq-content ol {
+      margin-left: 20px;
+      margin-bottom: 20px
+    }
+
+    .faq-content li {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <ul class="nav-left">
+    <li><a href="https://script.google.com/macros/s/AKfycby7-oV7WR4odBssV1n6kYcu0WoN8GkVHb1nol--GSEia4uB3pTw3gtJKRKOUts1Nakw/exec?page=faq">FAQ</a></li>
+  </ul>
+  <div class="logo-container">
+    <img src="https://i.imgur.com/w0MAryH.png" alt="Logo" class="logo" style="width: 170px;"> <!-- Ajustez la taille ici -->
+  </div>
+  <ul class="nav-right">
+    <li><a href="#login">Se connecter</a></li>
+    <li><a href="#signup" class="signup-button">S'inscrire</a></li>
+  </ul>
+</nav>
+  <header>
+    <h1>Génère ta doc<br>en un seul <span class="clic">CLIC</span></h1>
+  </header>
+
+  <div class="container">
+    <div class="progress-bar">
+      <div class="progress" id="progress" style="width: 20%;"></div>
+    </div>
+
+    <div class="stepper">
+      <div class="step-indicator active" onclick="goToStep(1)">Étape 1</div>
+      <div class="step-indicator" onclick="goToStep(2)">Étape 2</div>
+      <div class="step-indicator" onclick="goToStep(3)">Étape 3</div>
+      <div class="step-indicator" onclick="goToStep(4)">Étape 4</div>
+      <div class="step-indicator" onclick="goToStep(5)">Étape finale</div>
+    </div>
+
+    <main>
+      <!-- Étape 1 -->
+   <section id="step1" class="step active">
+  <p class="etape1-text"><span>Étape</span> 1</p>
+  <label for="sheetUrl" class="sheet-url-label">
+    Renseigne ton URL GoogleSheet :
+    <span class="help-icon" onclick="toggleHelp('helpStep1')">?</span>
+  </label>
+  <div id="helpStep1" class="help-box">
+    <p>Collez ici l'URL de votre Google Sheet. Assurez-vous que le document est partagé publiquement.</p>
+  </div>
+  <input type="text" id="sheetUrl" name="sheetUrl" required><br>
+  <div class="validation-button-container">
+    <button class="custom-button" onclick="loadSheetData()" id="nextButton1">
+      <i class="fas fa-arrow-right"></i> Go!
+    </button>
+  </div>
+  <div id="messageStep1" class="message"></div>
+</section>
+
+        <!-- Conteneur pour la recherche et le filtre -->
+        <div class="search-filter-container">
+          <!-- Champ de recherche -->
+          <div class="search-container">
+            <input type="text" id="searchInputStep1" placeholder="Rechercher...">
+          </div>
+
+          <!-- Filtre par colonne -->
+          <div class="filters-container">
+            <select id="filterByColumnStep1">
+              <option value="">Filtrer par colonne</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tableau pour afficher les données du Google Sheet -->
+        <div class="sheet-data-grid" id="sheetDataGridStep1" style="margin-top: 20px;"></div>
+      </section>
+
+      <!-- Étape 2 -->
+      <section id="step2" class="step">
+  <p class="etape1-text"><span>Étape</span> 2 :</p>
+  <label for="templateUrl" class="sheet-url-label">
+    Renseigne l'URL de ton template googledoc :
+    <span class="help-icon" onclick="toggleHelp('helpStep2')">?</span>
+  </label>
+  <div id="helpStep2" class="help-box">
+    <p>Collez ici l'URL de votre modèle Google Doc. Assurez-vous que le document est partagé publiquement.</p>
+  </div>
+  <input type="text" id="templateUrl" name="templateUrl" required><br>
+  <div class="validation-button-container">
+    <button class="custom-button" onclick="validateTemplateUrl()" id="validateTemplateButton" disabled>
+      <i class="fas fa-check"></i> Valider le Template
+    </button>
+    <button class="custom-button" onclick="goToStep(3)" id="nextButton2" disabled>
+      <i class="fas fa-arrow-right"></i> Suivant
+    </button>
+  </div>
+  <div id="messageStep2" class="message"></div>
+</section>
+
+      <!-- Étape 3 -->
+    <section id="step3" class="step">
+  <p class="etape1-text"><span>Étape</span> 3 :</p>
+  <label for="documentTitle" class="sheet-url-label">
+    Choisis ton titre de document :
+    <span class="help-icon" onclick="toggleHelp('helpStep3')">?</span>
+  </label>
+  <div id="helpStep3" class="help-box">
+    <p>Entrez un titre pour votre document généré. Ce titre sera utilisé pour nommer les fichiers.</p>
+  </div>
+  <input type="text" id="documentTitle" name="documentTitle" required><br>
+  <div class="validation-button-container">
+    <button class="custom-button" onclick="goToStep(4)" id="nextButton3">
+      <i class="fas fa-arrow-right"></i> Suivant
+    </button>
+  </div>
+  <div id="messageStep3" class="message"></div>
+</section>
+
+      <!-- Étape 4 -->
+      <section id="step4" class="step">
+        <p class="etape1-text"><span>Étape</span> 4 :</p>
+        <label for="folderUrl" class="sheet-url-label">
+          Renseigne le lien de ton URL du dossier Drive :
+          <span class="help-icon" onclick="toggleHelp('helpStep4')">?</span>
+        </label>
+        <div id="helpStep4" class="help-box">
+          <p>Collez ici l'URL du dossier Google Drive où les documents générés seront enregistrés.</p>
+        </div>
+        <input type="text" id="folderUrl" name="folderUrl" required><br>
+        <div class="validation-button-container">
+          <button class="custom-button" onclick="validateFolderUrl()" id="validateFolderButton" disabled>
+            <i class="fas fa-check"></i> Valider le Dossier
+          </button>
+          <button class="custom-button" onclick="goToStep(5)" id="nextButton4" disabled>
+            <i class="fas fa-arrow-right"></i> Suivant
+          </button>
+        </div>
+        <div id="messageStep4" class="message"></div>
+      </section>
+
+      <!-- Étape finale -->
+      <section id="step5" class="step">
+        <p class="etape1-text"><span>Étape</span> Finale :</p>
+        <label for="generateButton" class="sheet-url-label">
+          Sélectionne la ligne et génère ton doc :
+          <span class="help-icon" onclick="toggleHelp('helpStep5')">?</span>
+        </label>
+        <div id="helpStep5" class="help-box">
+          <p>Sélectionnez les lignes que vous souhaitez utiliser pour générer les documents. Cliquez sur "Générer la doc" pour terminer.</p>
+        </div>
+        <div class="sheet-data-grid" id="sheetDataGridStepFinal"></div>
+        <div class="validation-button-container">
+          <button class="custom-button" onclick="generateDocuments()" id="generateButton" disabled>
+            <i class="fas fa-file-alt"></i> Générer la doc
+          </button>
+        </div>
+        <div id="messageStep5" class="message"></div>
+
+        <!-- Conteneur pour afficher les liens des fichiers générés -->
+        <div id="generatedLinks" style="display: none; margin-top: 20px;">
+          <h4>Documents générés :</h4>
+          <table id="generatedLinksTable" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Titre</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Lien</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Les lignes seront ajoutées dynamiquement ici -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section pour l'iframe et les données de la feuille (visible sur toutes les pages) -->
+      <section id="dataAndIframeSection">
+        <!-- Titre pour l'iframe -->
+        <h2 class="section-title">
+          <i class="fas fa-file-alt"></i> Aperçu du document
+        </h2>
+        <div id="iframeContainer" style="display: none;">
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <button onclick="resizeIframe(-100)" class="custom-button">
+              <i class="fas fa-minus"></i> Réduire
+            </button>
+            <button onclick="resizeIframe(100)" class="custom-button" style="margin-left: 10px;">
+              <i class="fas fa-plus"></i> Agrandir
+            </button>
+          </div>
+          <iframe id="googleDocIframe" width="1000px" height="700px" frameborder="0"></iframe>
+        </div>
+
+        <!-- Titre pour la vue grid -->
+        <h2 class="section-title">
+          <i class="fas fa-table"></i> Données de la feuille
+        </h2>
+        <div id="sheetDataGridStep2" class="sheet-data-grid"></div>
+      </section>
+
+      <!-- Section FAQ -->
+      <section id="faq-section" style="display: none; margin-top: 40px;">
+        <h2 class="section-title">
+          <i class="fas fa-question-circle"></i> Guide d'utilisation & FAQ
+        </h2>
+        <div class="faq-content">
+          <!-- Contenu du guide et de la FAQ ici -->
+          <h3>Guide d'utilisation : Génère ta documentation en un seul clic</h3>
+          <p>
+            Bienvenue dans <strong>Génère ta documentation en un seul clic</strong>, l'application qui vous permet de créer facilement des documents à partir de vos données Google Sheets et de modèles Google Docs. Suivez ce guide pour démarrer rapidement.
+          </p>
+
+          <h4>1. Accédez à l'application</h4>
+          <ul>
+            <li><strong>Lien d'accès :</strong> Ouvrez l'application via votre navigateur en suivant le lien fourni.</li>
+            <li><strong>Connexion/Inscription :</strong>
+              <ul>
+                <li>Si vous êtes nouveau, cliquez sur <strong>S'inscrire</strong> pour créer un compte.</li>
+                <li>Si vous avez déjà un compte, cliquez sur <strong>Se connecter</strong>.</li>
+              </ul>
+            </li>
+          </ul>
+
+          <h4>2. Interface utilisateur</h4>
+          <ul>
+            <li><strong>Menu principal :</strong>
+              <ul>
+                <li><strong>FAQ :</strong> Accédez aux questions fréquemment posées.</li>
+                <li><strong>Se connecter/S'inscrire :</strong> Gérez votre compte utilisateur.</li>
+              </ul>
+            </li>
+            <li><strong>Progression :</strong> Une barre de progression et des étapes claires sont affichées pour vous guider.</li>
+            <li><strong>Aide :</strong> Des icônes "?" près de chaque champ permettent d'obtenir des explications complémentaires.</li>
+          </ul>
+
+          <h4>3. Instructions pas à pas</h4>
+          <h5>Étape 1 : Fournissez l'URL de votre Google Sheet</h5>
+          <ol>
+            <li>Copiez l'URL de votre feuille Google Sheet contenant les données.</li>
+            <li>Collez l'URL dans le champ prévu.</li>
+            <li>Cliquez sur <strong>Go!</strong> pour charger les données.</li>
+            <li>Utilisez les filtres ou la recherche pour explorer les données.</li>
+          </ol>
+
+          <h5>Étape 2 : Sélectionnez un modèle Google Doc</h5>
+          <ol>
+            <li>Copiez l'URL de votre modèle Google Doc.</li>
+            <li>Collez l'URL dans le champ prévu.</li>
+            <li>Cliquez sur <strong>Valider le Template</strong> pour confirmer que le modèle est accessible.</li>
+            <li>Un aperçu du document s'affichera si l'URL est correcte.</li>
+            <li><strong>Placeholders :</strong> Assurez-vous que votre modèle contient des placeholders au format <code>{{nom_colonne}}</code>, qui seront remplacés par les données de votre Google Sheet. Exemple : <code>{{Nom}}</code>.</li>
+          </ol>
+
+          <h5>Étape 3 : Donnez un titre à vos documents</h5>
+          <ol>
+            <li>Renseignez le titre souhaité pour les documents générés.</li>
+            <li><strong>Astuce :</strong> Vous pouvez inclure des placeholders dans le titre, comme <code>{{Nom}}</code> ou <code>{{Date}}</code>.</li>
+            <li>Cliquez sur <strong>Suivant</strong> pour valider.</li>
+          </ol>
+
+          <h5>Étape 4 : Sélectionnez un dossier Google Drive</h5>
+          <ol>
+            <li>Copiez l'URL du dossier où les documents seront enregistrés.</li>
+            <li>Collez l'URL dans le champ prévu.</li>
+            <li>Cliquez sur <strong>Valider le Dossier</strong>.</li>
+            <li>Vérifiez que vous avez les droits d'écriture sur ce dossier.</li>
+          </ol>
+
+          <h5>Étape finale : Générez vos documents</h5>
+          <ol>
+            <li>Sélectionnez les lignes de données à utiliser.</li>
+            <li>Cliquez sur <strong>Générer la doc</strong>.</li>
+            <li>Une liste des documents générés avec leurs liens s'affichera.</li>
+          </ol>
+
+          <h4>4. Conseils et astuces</h4>
+          <ul>
+            <li><strong>Partage des fichiers :</strong> Assurez-vous que vos fichiers (Google Sheet, modèle Google Doc) sont accessibles publiquement ou partagés avec les droits nécessaires.</li>
+            <li><strong>Sauvegarde :</strong> Organisez vos dossiers Google Drive pour faciliter la gestion des documents.</li>
+            <li><strong>Support :</strong> Utilisez les icônes "?" pour accéder à des explications supplémentaires.</li>
+            <li><strong>Validation des permissions :</strong> Si vous rencontrez des erreurs d'accès, vérifiez que votre compte a les droits nécessaires sur les fichiers et dossiers utilisés.</li>
+          </ul>
+
+          <h3>FAQ</h3>
+          <h4>1. Que faire si mon Google Sheet ne se charge pas ?</h4>
+          <p>
+            - Vérifiez que l'URL est correcte.<br>
+            - Assurez-vous que le document est partagé avec les droits nécessaires.<br>
+            - Contactez le support si le problème persiste.
+          </p>
+
+          <h4>2. Puis-je utiliser plusieurs modèles ?</h4>
+          <p>
+            - Actuellement, un seul modèle peut être utilisé à la fois. Vous pouvez changer de modèle pour de nouvelles générations.
+          </p>
+
+          <h4>3. Mes documents générés ne s'affichent pas dans le dossier Drive. Pourquoi ?</h4>
+          <p>
+            - Assurez-vous que l'URL du dossier Drive est correcte et que vous avez les droits d'écriture sur ce dossier.<br>
+            - Vérifiez que le dossier Drive est bien accessible à votre compte Google.
+          </p>
+
+          <h4>4. Comment utiliser les filtres sur les données ?</h4>
+          <p>
+            - Utilisez le champ de recherche pour trouver des valeurs.<br>
+            - Utilisez le menu déroulant pour filtrer par colonne.
+          </p>
+
+          <h4>5. Que faire si certains placeholders ne sont pas remplacés ?</h4>
+          <p>
+            - Assurez-vous que les noms des colonnes de votre Google Sheet correspondent exactement aux placeholders dans le modèle (sensible à la casse).<br>
+            - Vérifiez que tous les placeholders nécessaires sont présents dans le modèle Google Doc.
+          </p>
+
+          <h4>6. Où trouver mes fichiers générés ?</h4>
+          <p>
+            - Les fichiers sont enregistrés dans le dossier Drive spécifié à l'Étape 4.<br>
+            - Un tableau récapitulatif avec les liens vers les fichiers générés est également affiché dans l'application.
+          </p>
+
+          <h4>7. Que faire en cas d'erreur technique ?</h4>
+          <p>
+            - Rechargez la page et recommencez l'étape en cours.<br>
+            - Vérifiez que tous les champs requis sont correctement remplis.<br>
+            - Si le problème persiste, contactez le support via l'onglet <strong>FAQ</strong> ou par e-mail.
+          </p>
+        </div>
+      </section>
+
+      <div id="loading">
+        <div class="spinner"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" async></script>
+  <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js" async></script>
+  <script>
+    let currentStep = 1;
+    let sheetData = null;
+    let sheetUrl = '';
+    let templateUrl = '';
+    let folderUrl = '';
+    let documentTitle = '';
+
+    // Activer/désactiver les boutons en fonction de la saisie
+    document.getElementById('sheetUrl').addEventListener('input', function () {
+      sheetUrl = this.value;
+    });
+
+    document.getElementById('templateUrl').addEventListener('input', function () {
+      templateUrl = this.value;
+      document.getElementById('validateTemplateButton').disabled = !this.value.trim();
+    });
+
+    document.getElementById('folderUrl').addEventListener('input', function () {
+      folderUrl = this.value;
+      document.getElementById('validateFolderButton').disabled = !this.value.trim();
+    });
+
+    document.getElementById('documentTitle').addEventListener('input', function () {
+      documentTitle = this.value;
+    });
+
+    function goToStep(stepNumber) {
+      if (stepNumber < 1 || stepNumber > 5) return;
+
+      // Effacer les messages des étapes précédentes
+      for (let i = 1; i <= 5; i++) {
+        clearMessage(i);
+      }
+
+      currentStep = stepNumber;
+      const steps = document.querySelectorAll('.step');
+      steps.forEach(step => step.classList.remove('active'));
+
+      setTimeout(() => {
+        document.getElementById(`step${stepNumber}`).classList.add('active');
+        updateProgressBar(stepNumber);
+        updateStepper(stepNumber);
+
+        // Remplir les champs avec les valeurs stockées
+        if (stepNumber === 1) {
+          document.getElementById('sheetUrl').value = sheetUrl;
+        } else if (stepNumber === 2) {
+          document.getElementById('templateUrl').value = templateUrl;
+        } else if (stepNumber === 3) {
+          document.getElementById('documentTitle').value = documentTitle;
+        } else if (stepNumber === 4) {
+          document.getElementById('folderUrl').value = folderUrl;
+        }
+
+        // Afficher la grille de données à l'étape finale
+        if (stepNumber === 5 && sheetData) {
+          displaySheetDataGrid(sheetData, 'sheetDataGridStepFinal');
+        }
+      }, 50);
+    }
+
+    function updateProgressBar(stepNumber) {
+      const progress = document.getElementById('progress');
+      const progressPercentage = (stepNumber / 5) * 100;
+      progress.style.width = `${progressPercentage}%`;
+    }
+
+    function updateStepper(stepNumber) {
+      const indicators = document.querySelectorAll('.step-indicator');
+      indicators.forEach((indicator, index) => {
+        indicator.classList.toggle('active', index + 1 === stepNumber);
+      });
+    }
+
+    function displaySheetDataGrid(data, stepId) {
+      const gridContainer = document.getElementById(stepId);
+      if (!gridContainer) {
+        console.error(`Conteneur de grille introuvable pour l'étape : ${stepId}`);
+        return;
+      }
+
+      gridContainer.innerHTML = '';
+
+      const table = document.createElement('table');
+
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+
+      const checkboxHeader = document.createElement('th');
+      checkboxHeader.textContent = 'Sélection';
+      headerRow.appendChild(checkboxHeader);
+
+      data.columnNames.forEach(columnName => {
+        const th = document.createElement('th');
+        th.textContent = columnName;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      data.rows.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+
+        const checkboxCell = document.createElement('td');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'rowCheckbox';
+        checkbox.value = rowIndex + 1;
+        checkboxCell.appendChild(checkbox);
+        tr.appendChild(checkboxCell);
+
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      gridContainer.appendChild(table);
+
+      const checkboxes = gridContainer.querySelectorAll('.rowCheckbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+          const atLeastOneChecked = Array.from(checkboxes).some(cb => cb.checked);
+          document.getElementById('generateButton').disabled = !atLeastOneChecked;
+        });
+      });
+
+      // Initialiser DataTables pour la recherche et le filtrage
+      initializeDataTableStep1(data);
+
+      // Animer les lignes du tableau
+      const rows = gridContainer.querySelectorAll('tr');
+      rows.forEach((row, index) => {
+        setTimeout(() => {
+          row.classList.add('show');
+        }, index * 100); // Délai pour un effet de cascade
+      });
+    }
+
+    function initializeDataTableStep1(data) {
+      if ($.fn.DataTable.isDataTable('#sheetDataGridStep1 table')) {
+        $('#sheetDataGridStep1 table').DataTable().destroy();
+      }
+
+      const dataTable = $('#sheetDataGridStep1 table').DataTable({
+        paging: true,
+        pageLength: 10, // Affiche 10 lignes par page
+        searching: true,
+        ordering: true,
+        info: true,
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/French.json"
+        }
+      });
+
+      // Ajouter la recherche personnalisée
+      $('#searchInputStep1').on('keyup', function () {
+        dataTable.search(this.value).draw();
+      });
+
+      // Ajouter les filtres personnalisés
+      const filterByColumn = document.getElementById('filterByColumnStep1');
+      filterByColumn.innerHTML = '<option value="">Filtrer par colonne</option>';
+
+      if (data.columnNames && data.columnNames.length > 0) {
+        data.columnNames.forEach((columnName, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = columnName;
+          filterByColumn.appendChild(option);
+        });
+      }
+
+      filterByColumn.onchange = function () {
+        const columnIndex = this.value ? parseInt(this.value, 10) : null;
+        if (columnIndex !== null) {
+          dataTable.column(columnIndex + 1).search(this.value).draw(); // +1 pour ignorer la colonne de sélection
+        } else {
+          dataTable.search('').columns().search('').draw(); // Réinitialiser tous les filtres
+        }
+      };
+    }
+
+    function loadSheetData() {
+      const sheetUrl = document.getElementById('sheetUrl').value;
+
+      if (sheetUrl) {
+        showLoading();
+        google.script.run
+          .withSuccessHandler((data) => {
+            hideLoading();
+            sheetData = data;
+
+            if (sheetData && sheetData.columnNames && sheetData.rows) {
+              showMessage(1, "Données chargées avec succès !", true);
+              goToStep(2);
+              displaySheetDataGrid(sheetData, 'sheetDataGridStep2');
+            } else {
+              showMessage(1, "Aucune donnée valide n'a été chargée.", false);
+            }
+          })
+          .withFailureHandler((error) => {
+            hideLoading();
+            showMessage(1, `Erreur : ${error.message}`, false);
+          })
+          .getSheetData(sheetUrl);
+      } else {
+        showMessage(1, "Veuillez saisir une URL valide.", false);
+      }
+    }
+
+    function validateTemplateUrl() {
+      const templateUrl = document.getElementById('templateUrl').value;
+
+      if (!templateUrl) {
+        showMessage(2, "Veuillez saisir l'URL du template.", false);
+        return;
+      }
+
+      // Afficher l'iframe avec le Google Doc
+      const iframeContainer = document.getElementById('iframeContainer');
+      const googleDocIframe = document.getElementById('googleDocIframe');
+      
+      iframeContainer.style.display = 'block';
+      googleDocIframe.src = templateUrl + "/preview"; // Ajoutez "/preview" à l'URL
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler((isValid) => {
+          hideLoading();
+          if (isValid) {
+            showMessage(2, "Le template est valide !", true);
+            document.getElementById('nextButton2').disabled = false; // Activer le bouton "Suivant"
+          } else {
+            showMessage(2, "Le template est invalide. Veuillez vérifier l'URL.", false);
+          }
+        })
+        .withFailureHandler((error) => {
+          hideLoading();
+          showMessage(2, `Erreur : ${error.message}`, false);
+        })
+        .validateTemplateUrl(templateUrl);
+    }
+
+    function validateFolderUrl() {
+      const folderUrl = document.getElementById('folderUrl').value;
+
+      if (!folderUrl) {
+        showMessage(4, "Veuillez saisir l'URL du dossier Drive.", false);
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler((isValid) => {
+          hideLoading();
+          if (isValid) {
+            showMessage(4, "Le dossier Drive est valide !", true);
+            document.getElementById('nextButton4').disabled = false; // Activer le bouton "Suivant"
+          } else {
+            showMessage(4, "Le dossier Drive est invalide. Veuillez vérifier l'URL.", false);
+          }
+        })
+        .withFailureHandler((error) => {
+          hideLoading();
+          showMessage(4, `Erreur : ${error.message}`, false);
+        })
+        .validateFolderUrl(folderUrl);
+    }
+
+    function generateDocuments() {
+      const selectedRows = Array.from(document.querySelectorAll('.rowCheckbox:checked'))
+        .map(checkbox => checkbox.value)
+        .join(',');
+
+      if (!selectedRows) {
+        showMessage(5, "Veuillez sélectionner au moins une ligne à générer.", false);
+        return;
+      }
+
+      const sheetUrl = document.getElementById('sheetUrl').value;
+      const templateUrl = document.getElementById('templateUrl').value;
+      const folderUrl = document.getElementById('folderUrl').value;
+      const documentTitle = document.getElementById('documentTitle').value;
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler((response) => {
+          hideLoading();
+          showMessage(5, response.message, true);
+
+          // Ajouter les fichiers générés au tableau
+          if (response.files && response.files.length > 0) {
+            const tableBody = document.getElementById('generatedLinksTable').querySelector('tbody');
+            tableBody.innerHTML = ''; // Réinitialiser les anciennes lignes
+
+            response.files.forEach((fileUrl, index) => {
+              const now = new Date();
+              const row = document.createElement('tr');
+
+              // Titre du document
+              const titleCell = document.createElement('td');
+              titleCell.style.border = '1px solid #ddd';
+              titleCell.style.padding = '8px';
+              titleCell.textContent = `Document ${index + 1}`; // Remplacez par un titre personnalisé si disponible
+              row.appendChild(titleCell);
+
+              // Lien vers le document
+              const linkCell = document.createElement('td');
+              linkCell.style.border = '1px solid #ddd';
+              linkCell.style.padding = '8px';
+              const link = document.createElement('a');
+              link.href = fileUrl;
+              link.target = '_blank';
+              link.textContent = "Voir le document";
+              linkCell.appendChild(link);
+              row.appendChild(linkCell);
+
+              // Date de génération
+              const dateCell = document.createElement('td');
+              dateCell.style.border = '1px solid #ddd';
+              dateCell.style.padding = '8px';
+              dateCell.textContent = now.toLocaleString(); // Format de la date et heure locale
+              row.appendChild(dateCell);
+
+              tableBody.appendChild(row);
+            });
+
+            // Afficher le tableau des liens générés
+            document.getElementById('generatedLinks').style.display = 'block';
+          }
+        })
+        .withFailureHandler((error) => {
+          hideLoading();
+          showMessage(5, `Erreur : ${error.message}`, false);
+        })
+        .generateDocuments(sheetUrl, templateUrl, folderUrl, documentTitle, selectedRows);
+    }
+
+    function showMessage(stepId, message, isSuccess) {
+      const messageElement = document.getElementById(`messageStep${stepId}`);
+      if (messageElement) {
+        messageElement.textContent = message;
+        messageElement.className = `message ${isSuccess ? 'success' : 'error'}`;
+        messageElement.classList.add('show');
+        setTimeout(() => {
+          messageElement.classList.remove('show');
+        }, 3000); // Masquer le message après 3 secondes
+      }
+    }
+
+    function clearMessage(stepId) {
+      const messageElement = document.getElementById(`messageStep${stepId}`);
+      if (messageElement) {
+        messageElement.textContent = '';
+        messageElement.className = 'message';
+      }
+    }
+
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // Fonction pour redimensionner l'iframe
+    function resizeIframe(amount) {
+      const iframe = document.getElementById('googleDocIframe');
+      const currentWidth = parseInt(iframe.width, 10); // Récupère la largeur actuelle en pixels
+      const newWidth = currentWidth + amount;
+
+      // Définir une largeur minimale et maximale pour éviter des tailles inappropriées
+      if (newWidth >= 300 && newWidth <= 1500) { // Limites ajustées
+        iframe.width = newWidth + 'px'; // Applique la nouvelle largeur en pixels
+      }
+    }
+
+    // Gestion des encadrés d'aide
+    function toggleHelp(helpId) {
+      const helpBox = document.getElementById(helpId);
+      const allHelpBoxes = document.querySelectorAll('.help-box');
+
+      // Fermer tous les encadrés d'aide
+      allHelpBoxes.forEach(box => {
+        if (box.id !== helpId) {
+          box.style.display = 'none';
+        }
+      });
+
+      // Afficher ou masquer l'encadré d'aide actuel
+      if (helpBox.style.display === 'block') {
+        helpBox.style.display = 'none';
+      } else {
+        helpBox.style.display = 'block';
+      }
+    }
+
+    // Fermer les encadrés d'aide si l'utilisateur clique à l'extérieur
+    document.addEventListener('click', function (event) {
+      const allHelpBoxes = document.querySelectorAll('.help-box');
+      const allHelpIcons = document.querySelectorAll('.help-icon');
+
+      let isClickInsideHelpBox = false;
+      let isClickOnHelpIcon = false;
+
+      allHelpBoxes.forEach(box => {
+        if (box.contains(event.target)) {
+          isClickInsideHelpBox = true;
+        }
+      });
+
+      allHelpIcons.forEach(icon => {
+        if (icon.contains(event.target)) {
+          isClickOnHelpIcon = true;
+        }
+      });
+
+      // Fermer les encadrés si le clic est à l'extérieur
+      if (!isClickInsideHelpBox && !isClickOnHelpIcon) {
+        allHelpBoxes.forEach(box => {
+          box.style.display = 'none';
+        });
+      }
+    });
+
+    // Fonction pour afficher/masquer la FAQ
+    function toggleFAQ() {
+      const faqSection = document.getElementById('faq-section');
+      if (faqSection.style.display === 'none' || faqSection.style.display === '') {
+        faqSection.style.display = 'block';
+      } else {
+        faqSection.style.display = 'none';
+      }
+    }
+
+    // Gestion des paramètres d'URL pour afficher la FAQ
+    function getParameterByName(name, url = window.location.href) {
+      name = name.replace(/[\[\]]/g, '\\$&');
+      let regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+          results = regex.exec(url);
+      if (!results) return null;
+      if (!results[2]) return '';
+      return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+
+    function checkUrlForFAQ() {
+      const faqSection = document.getElementById('faq-section');
+      if (getParameterByName('page') === 'faq') {
+        faqSection.style.display = 'block';
+      } else {
+        faqSection.style.display = 'none';
+      }
+    }
+
+    // Effet de fade-in au chargement de la page
+    window.addEventListener('load', () => {
+      document.body.classList.add('loaded');
+      checkUrlForFAQ(); // Vérifier l'URL pour afficher la FAQ
+    });
+  </script>
+</body>
+</html>
